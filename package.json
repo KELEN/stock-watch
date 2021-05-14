@@ -2,7 +2,7 @@
 	"name": "stock-watch",
 	"displayName": "Stock Watch",
 	"description": "股票 | A股港股美股 | 实时股票数据 | watch stock when coding",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"publisher": "xuallen",
 	"license": "MIT",
 	"keywords": [
@@ -61,14 +61,15 @@
 		"test": "node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
-		"typescript": "^2.6.1",
-		"vscode": "^1.1.6",
-		"eslint": "^4.11.0",
+		"@types/mocha": "^2.2.42",
 		"@types/node": "^7.0.43",
-		"@types/mocha": "^2.2.42"
+		"eslint": "^4.11.0",
+		"typescript": "^2.6.1",
+		"vscode": "^1.1.6"
 	},
 	"dependencies": {
-		"axios": "^0.18.0"
+		"axios": "^0.18.0",
+		"dayjs": "^1.10.4"
 	},
 	"repository": {
 		"type": "git",
