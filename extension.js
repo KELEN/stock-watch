@@ -17,6 +17,7 @@ exports.activate = activate;
 function deactivate() {}
 exports.deactivate = deactivate;
 
+
 function init() {
   if (isShowTime()) {
     stockCodes = getStockCodes();
@@ -65,7 +66,9 @@ function handleConfigChange() {
 function getStockCodes() {
   const config = vscode.workspace.getConfiguration();
   const stocks = config.get("stock-watch.stocks");
-  return stocks.map((code) => {
+  return stocks.map((configItem) => {
+    const [code] = configItem.split('|');
+    // console.log('code is ', code);
     if (isNaN(code[0])) {
       if (code.toLowerCase().indexOf("us_") > -1) {
         return code.toUpperCase();
@@ -88,6 +91,7 @@ function getUpdateInterval() {
 function isShowTime() {
   const config = vscode.workspace.getConfiguration();
   const configShowTime = config.get("stock-watch.showTime");
+  if (configShowTime.length === 0) return true;
   let showTime = [0, 23];
   if (Array.isArray(configShowTime) && configShowTime.length === 2 && configShowTime[0] <= configShowTime[1]) {
     showTime = configShowTime;
@@ -102,18 +106,36 @@ function getItemText(item) {
   }」${
     keepDecimal(item.price, calcFixedNumber(item))
   } ${
-    item.percent >= 0 ? "📈" : "📉"
-  } ${
     keepDecimal(item.percent * 100, 2)
   }%`;
 }
 
 function getTooltipText(item) {
-  return `【今日行情】${
+
+  const config = vscode.workspace.getConfiguration();
+  const stocks = config.get("stock-watch.stocks");
+
+  const match = stocks.find(configItem => {
+    const [code] = configItem.split('|');
+    return code === item.symbol;
+  })
+
+  let moneyInfo = '';
+
+  if (match) {
+    const [code, price, num] = match.split('|');
+    // 赚取
+    if (price && num) {
+      const money = Math.floor((item.price - price) * num);
+      moneyInfo = `盈利：${money}\n`
+    }
+  }
+
+  return `【${item.name}】${
     item.type
   }${
     item.symbol
-  }\n涨跌：${
+  }\n${moneyInfo}涨跌：${
     item.updown
   }   百分：${
     keepDecimal(item.percent * 100, 2)
