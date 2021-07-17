@@ -2,7 +2,7 @@
 	"name": "stock-watch",
 	"displayName": "Stock Watch",
 	"description": "股票 | A股港股美股 | 实时股票数据 | watch stock when coding",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"publisher": "xuallen",
 	"license": "MIT",
 	"keywords": [
@@ -58,7 +58,8 @@
 	},
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install",
-		"test": "node ./node_modules/vscode/bin/test"
+		"test": "node ./node_modules/vscode/bin/test",
+		"package": "vsce package"
 	},
 	"devDependencies": {
 		"@types/mocha": "^2.2.42",
