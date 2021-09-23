@@ -2,11 +2,13 @@ const vscode = require("vscode");
 const axios = require("axios");
 const dayjs = require("dayjs");
 const baseUrl = "https://api.money.126.net/data/feed/";
-let statusBarItems = {};
 let stockCodes = [];
 let updateInterval = 10000;
 let timer = null;
 let showTimer = null;
+
+// 全局barItem
+const barItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
 
 function activate(context) {
   initShowTimeChecker();
@@ -14,7 +16,7 @@ function activate(context) {
 }
 exports.activate = activate;
 
-function deactivate() {}
+function deactivate() { }
 exports.deactivate = deactivate;
 
 
@@ -31,7 +33,7 @@ function init() {
 function initShowTimeChecker() {
   showTimer && clearInterval(showTimer);
   showTimer = setInterval(() => {
-		console.log('check show ' + isShowTime())
+    console.log('check show ' + isShowTime())
     if (isShowTime()) {
       init();
     } else {
@@ -42,24 +44,17 @@ function initShowTimeChecker() {
 }
 
 function hideAllStatusBar() {
-  Object.keys(statusBarItems).forEach((item) => {
-    statusBarItems[item].hide();
-    statusBarItems[item].dispose();
-		delete statusBarItems[item];
-  });
+  barItem.hide();
+  barItem.dispose();
 }
 
 function handleConfigChange() {
   timer && clearInterval(timer);
   // showTimer && clearInterval(showTimer);
   const codes = getStockCodes();
-  Object.keys(statusBarItems).forEach((item) => {
-    if (codes.indexOf(item) === -1) {
-      statusBarItems[item].hide();
-      statusBarItems[item].dispose();
-      delete statusBarItems[item];
-    }
-  });
+  if (codes.length === 0) {
+    barItem.hide();
+  }
   init();
 }
 
@@ -78,7 +73,7 @@ function getStockCodes() {
         return code.toLowerCase().replace("sz", "1").replace("sh", "0");
       }
     } else {
-      return(code[0] === "6" ? "0" : "1") + code;
+      return (code[0] === "6" ? "0" : "1") + code;
     }
   });
 }
@@ -101,33 +96,10 @@ function isShowTime() {
 }
 
 function getItemText(item) {
-
-  const config = vscode.workspace.getConfiguration();
-  const stocks = config.get("stock-watch.stocks");
-
-  const match = stocks.find(configItem => {
-    const [code] = configItem.split('|');
-    return code === item.symbol;
-  })
-
-  let money = '';
-
-  if (match) {
-    const [code, price, num] = match.split('|');
-    // 赚取
-    if (price && num) {
-      money = Math.floor((item.price - price) * num);
-    }
-  }
-
-  // console.log('money', money)
-  return `「${
-    item.name
-  }」${
-    keepDecimal(item.price, calcFixedNumber(item))
-  } ${
-    keepDecimal(item.percent * 100, 2)
-  }% ${money ? `「${money}」`: ''}`.trim();
+  return `「${item.name
+    }」${keepDecimal(item.price, calcFixedNumber(item))
+    } ${keepDecimal(item.percent * 100, 2)
+    }%`;
 }
 
 function getTooltipText(item) {
@@ -151,78 +123,76 @@ function getTooltipText(item) {
     }
   }
 
-  return `【${item.name}】${
-    item.type
-  }${
-    item.symbol
-  }\n${moneyInfo}涨跌：${
-    item.updown
-  }   百分：${
-    keepDecimal(item.percent * 100, 2)
-  }%\n最高：${
-    item.high
-  }   最低：${
-    item.low
-  }\n今开：${
-    item.open
-  }   昨收：${
-    item.yestclose
-  }`;
+  return `【${item.name}】${item.type
+    }${item.symbol
+    }\n${moneyInfo}涨跌：${item.updown
+    }   百分：${keepDecimal(item.percent * 100, 2)
+    }%\n最高：${item.high
+    }   最低：${item.low
+    }\n今开：${item.open
+    }   昨收：${item.yestclose
+    }`;
 }
 
 function getItemColor(item) {
   const config = vscode.workspace.getConfiguration();
   const riseColor = config.get("stock-watch.riseColor");
   const fallColor = config.get("stock-watch.fallColor");
-
   return item.percent >= 0 ? riseColor : fallColor;
 }
 
 function fetchAllData() {
-	console.log('featch data')
   if (isShowTime()) {
-    axios.get(`${baseUrl}${
-      stockCodes.join(",")
-    }?callback=a`).then((rep) => {
-      console.log(rep);
-      try {
-        const result = JSON.parse(rep.data.slice(2, -2));
-        let data = [];
-        Object.keys(result).map((item) => {
-          if (! result[item].code) {
-            result[item].code = item; // 兼容港股美股
-          }data.push(result[item]);
-        });
-        displayData(data);
-      } catch (error) {}
-    }, (error) => {
-      console.error(error);
-    }).catch((error) => {
-      console.error(error);
-    });
+    axios.get(`${baseUrl}${stockCodes.join(",")
+      }?callback=a`).then((rep) => {
+        console.log(rep);
+        try {
+          const result = JSON.parse(rep.data.slice(2, -2));
+          let data = [];
+          Object.keys(result).map((item) => {
+            if (!result[item].code) {
+              result[item].code = item; // 兼容港股美股
+            } data.push(result[item]);
+          });
+          displayData(data);
+        } catch (error) { }
+      }, (error) => {
+        console.error(error);
+      }).catch((error) => {
+        console.error(error);
+      });
   }
 }
 
 function displayData(data) {
-  data.map((item) => {
-    const key = item.code;
-    if (statusBarItems[key]) {
-      statusBarItems[key].text = getItemText(item);
-      statusBarItems[key].color = getItemColor(item);
-      statusBarItems[key].tooltip = getTooltipText(item);
-    } else {
-      statusBarItems[key] = createStatusBarItem(item);
-    }
-  });
-}
+  barItem.text = '✈️';
 
-function createStatusBarItem(item) {
-  const barItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0 - stockCodes.indexOf(item.code));
-  barItem.text = getItemText(item);
-  barItem.color = getItemColor(item);
-  barItem.tooltip = getTooltipText(item);
+  const toolTipContent = data.map(item => {
+    const config = vscode.workspace.getConfiguration();
+    const stocks = config.get("stock-watch.stocks");
+
+    const match = stocks.find(configItem => {
+      const [code] = configItem.split('|');
+      return code === item.symbol;
+    })
+
+    let moneyInfo = '';
+
+    if (match) {
+      const [code, price, num] = match.split('|');
+      // 赚取
+      if (price && num) {
+        const money = Math.floor((item.price - price) * num);
+        moneyInfo = ` 盈利：${money}\n`
+      }
+    }
+    console.log(item);
+    return `${item.name}  |  ${keepDecimal(item.price, calcFixedNumber(item))}  |  ${keepDecimal(item.percent * 100, 2)}%  ${moneyInfo ? '| ' + moneyInfo : ''}`;
+  }).join('\n')
+
+  barItem.tooltip = toolTipContent;
+
   barItem.show();
-  return barItem;
 }
 
 function keepDecimal(num, fixed) {

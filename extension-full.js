@@ -101,13 +101,33 @@ function isShowTime() {
 }
 
 function getItemText(item) {
+
+  const config = vscode.workspace.getConfiguration();
+  const stocks = config.get("stock-watch.stocks");
+
+  const match = stocks.find(configItem => {
+    const [code] = configItem.split('|');
+    return code === item.symbol;
+  })
+
+  let money = '';
+
+  if (match) {
+    const [code, price, num] = match.split('|');
+    // 赚取
+    if (price && num) {
+      money = Math.floor((item.price - price) * num);
+    }
+  }
+
+  console.log('money', money)
   return `「${
     item.name
   }」${
     keepDecimal(item.price, calcFixedNumber(item))
   } ${
     keepDecimal(item.percent * 100, 2)
-  }%`;
+  }% ${money}`;
 }
 
 function getTooltipText(item) {
